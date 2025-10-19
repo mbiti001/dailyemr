@@ -64,18 +64,30 @@ APP_BASE_URL="http://localhost:3000"
 	npm run dev
 	```
 
-	Visit [http://localhost:3000](http://localhost:3000) to access the dashboard.
+Visit [http://localhost:3000](http://localhost:3000) to access the dashboard.
 
-	## Continuous integration
+## Continuous integration
 
-	Every push or pull request targeting `main` triggers the GitHub Actions workflow defined in `.github/workflows/ci.yml`. The pipeline runs on Ubuntu and performs:
+Every push or pull request targeting `main` triggers the GitHub Actions workflow defined in `.github/workflows/ci.yml`. The pipeline runs on Ubuntu and performs:
 
-	- `npm ci` to install dependencies with a clean lockfile snapshot
-	- `npx prisma generate` so the Prisma client stays in sync with the schema
-	- `npm run lint` for ESLint checks
-	- `npm run typecheck` for TypeScript validation
+- `npm ci` to install dependencies with a clean lockfile snapshot
+- `npx prisma generate` so the Prisma client stays in sync with the schema
+- `npm run lint` for ESLint checks
+- `npm run typecheck` for TypeScript validation
 
-	Keep commits green by running the same commands locally before pushing.
+Keep commits green by running the same commands locally before pushing.
+
+## Deployment
+
+Deployments are easiest through Vercel (free tier works for staging).
+
+1. Push changes to GitHub (`origin` now points to `https://github.com/mbiti001/dailyemr.git`).
+2. In [Vercel](https://vercel.com/new), select **Import Git Repository** and choose `mbiti001/dailyemr`.
+3. When prompted for environment variables, add everything from `.env.example` (especially `DATABASE_URL` and `SESSION_PASSWORD`). Use Vercel Environment → Production/Preview to scope them.
+4. Accept the default Next.js build command (`npm run build`) and output directory (`.vercel/output` managed automatically).
+5. Each push to `main` will trigger the GitHub Action (quality gates) and Vercel will auto-deploy the latest commit to your production URL.
+
+If you prefer another hosting provider (Netlify, Render, Fly.io), mirror the same environment variables and run `npm run build && npm start` in their build setup.
 
 ## Tech stack
 
