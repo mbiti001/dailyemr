@@ -58,13 +58,27 @@ APP_BASE_URL="http://localhost:3000"
 	npm run prisma:migrate -- --name init
 	```
 
-4. **Run the development server**
+4. **Seed realistic demo data** (optional, but unlocks the analytics dashboard out of the box):
+
+	```bash
+	npm run seed
+	```
+
+	> The seed script clears existing records and inserts facilities, staff, patients, visits, labs, pharmacy stock, invoices, and payments with plausible Kenyan context. Re-run it anytime you need to reset the sandbox dataset.
+
+5. **Run the development server**
 
 	```bash
 	npm run dev
 	```
 
 Visit [http://localhost:3000](http://localhost:3000) to access the dashboard.
+
+## Analytics & dashboards
+
+- The landing page (`/`) and main dashboard (`/dashboard`) load aggregated metrics directly from Prisma. Both routes are marked `dynamic` so they always execute on the server with the latest data.
+- Make sure `DATABASE_URL` is available in every environment (local, CI preview, production) where these routes run. When deploying to Vercel or similar platforms, set the variable under the appropriate environment scope.
+- Run `npm run seed` after provisioning your database so the hero metrics, revenue panels, visit trends, and lab widgets light up immediately. The seed script can be safely re-executed to reset the demo dataset.
 
 ## Continuous integration
 
@@ -86,6 +100,12 @@ Deployments are easiest through Vercel (free tier works for staging).
 3. When prompted for environment variables, add everything from `.env.example` (especially `DATABASE_URL` and `SESSION_PASSWORD`). Use Vercel Environment → Production/Preview to scope them.
 4. Accept the default Next.js build command (`npm run build`) and output directory (`.vercel/output` managed automatically).
 5. Each push to `main` will trigger the GitHub Action (quality gates) and Vercel will auto-deploy the latest commit to your production URL.
+
+### Prisma-powered API routes on Vercel
+
+- Every route under `app/api/**` that talks to Prisma is marked with `dynamic = "force-dynamic"`, `revalidate = 0`, and `runtime = "nodejs"`. That ensures Vercel runs them as Node.js serverless functions instead of Edge functions—which would otherwise fail during the build step with "Failed to collect page data" errors.
+- Double-check that your Vercel project has `DATABASE_URL` defined for both Build and Runtime scopes. Without it, Prisma will throw at build time.
+- If you add new API routes that use Prisma, copy the same runtime exports to keep deployments healthy.
 
 If you prefer another hosting provider (Netlify, Render, Fly.io), mirror the same environment variables and run `npm run build && npm start` in their build setup.
 
