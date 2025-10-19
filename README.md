@@ -66,6 +66,17 @@ APP_BASE_URL="http://localhost:3000"
 
 	Visit [http://localhost:3000](http://localhost:3000) to access the dashboard.
 
+	## Continuous integration
+
+	Every push or pull request targeting `main` triggers the GitHub Actions workflow defined in `.github/workflows/ci.yml`. The pipeline runs on Ubuntu and performs:
+
+	- `npm ci` to install dependencies with a clean lockfile snapshot
+	- `npx prisma generate` so the Prisma client stays in sync with the schema
+	- `npm run lint` for ESLint checks
+	- `npm run typecheck` for TypeScript validation
+
+	Keep commits green by running the same commands locally before pushing.
+
 ## Tech stack
 
 - **Next.js 14** (App Router, React Server Components)

@@ -9,17 +9,23 @@ const sections = [
 
 export default function DashboardHome() {
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    <section className="grid gap-5 sm:grid-cols-2">
       {sections.map(section => (
         <Link
           key={section.href}
           href={section.href}
-          className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-slate-400 hover:shadow"
+          className="group rounded-3xl border border-white/40 bg-white/80 p-6 shadow-card ring-1 ring-brand-sky/5 transition hover:-translate-y-1 hover:bg-white/95 hover:shadow-xl"
         >
-          <h2 className="text-lg font-semibold">{section.title}</h2>
-          <p className="mt-2 text-sm text-slate-500">{section.description}</p>
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-sky/20 text-brand-navy">
+            <span className="text-lg font-semibold">{section.title[0]}</span>
+          </div>
+          <h2 className="mt-4 text-lg font-semibold text-brand-midnight">{section.title}</h2>
+          <p className="mt-2 text-sm text-slate-600">{section.description}</p>
+          <span className="mt-4 inline-flex items-center text-sm font-semibold text-brand-blue opacity-0 transition group-hover:opacity-100">
+            Enter workspace →
+          </span>
         </Link>
       ))}
-    </div>
+    </section>
   );
 }

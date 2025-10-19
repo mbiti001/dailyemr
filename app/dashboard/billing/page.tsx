@@ -52,44 +52,65 @@ export default function BillingPage() {
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
-      <div className="rounded-2xl bg-white p-4 shadow">
-        <h3 className="mb-2 font-semibold">Invoice</h3>
+    <section className="grid gap-6 md:grid-cols-2">
+      <div className="rounded-3xl border border-white/50 bg-white/80 p-6 shadow-card ring-1 ring-brand-sky/10">
+        <h3 className="text-lg font-semibold text-brand-midnight">Create invoice</h3>
+        <p className="text-sm text-slate-500">Tie line items to a visit and prepare the claim ledger.</p>
         <input
-          className="mb-2 w-full rounded border p-2"
+          className="mt-4 w-full rounded-2xl border border-white/50 bg-white/70 px-4 py-3 text-sm text-brand-midnight placeholder:text-slate-400 focus:border-brand-blue focus:outline-none focus:ring-2 focus:ring-brand-sky/40"
           placeholder="Visit ID"
           value={visitId}
           onChange={(event: ChangeEvent<HTMLInputElement>) => setVisitId(event.target.value)}
         />
-        <button className="rounded bg-black p-2 text-white" onClick={createInvoice} disabled={!visitId}>
-          Create
+        <button
+          className="mt-4 inline-flex rounded-full bg-brand-sky px-5 py-2 text-sm font-semibold text-brand-midnight shadow-[0_18px_32px_-18px_rgba(56,189,248,0.65)] transition hover:shadow-[0_22px_42px_-18px_rgba(56,189,248,0.7)] disabled:opacity-40"
+          onClick={createInvoice}
+          disabled={!visitId}
+        >
+          Create invoice
         </button>
-        <div className="mt-2 text-xs">Invoice ID: {invoiceId || "—"}</div>
+        <div className="mt-4 flex items-center gap-2 text-xs uppercase tracking-[0.26em] text-slate-500">
+          Invoice ID
+          <span className="rounded-full bg-brand-sky/20 px-3 py-1 text-[11px] font-semibold text-brand-blue">
+            {invoiceId || "Pending"}
+          </span>
+        </div>
       </div>
-      <div className="rounded-2xl bg-white p-4 shadow">
-        <h3 className="mb-2 font-semibold">Item &amp; Payment</h3>
-        <input
-          className="mb-2 w-full rounded border p-2"
-          placeholder="Description"
-          value={description}
-          onChange={(event: ChangeEvent<HTMLInputElement>) => setDescription(event.target.value)}
-        />
-        <input
-          className="mb-2 w-full rounded border p-2"
-          type="number"
-          placeholder="Amount (KES cents)"
-          value={amount ? amount : ""}
-          onChange={(event: ChangeEvent<HTMLInputElement>) => setAmount(Number(event.target.value))}
-        />
-        <div className="flex gap-2">
-          <button className="rounded border p-2" onClick={addItem} disabled={!invoiceId || !amount}>
-            Add Item
+      <div className="rounded-3xl border border-white/50 bg-white/80 p-6 shadow-card ring-1 ring-brand-sky/10">
+        <h3 className="text-lg font-semibold text-brand-midnight">Items &amp; settlement</h3>
+        <p className="text-sm text-slate-500">Capture tariff lines then record payment or SHA remittance.</p>
+        <div className="mt-4 space-y-3">
+          <input
+            className="w-full rounded-2xl border border-white/50 bg-white/70 px-4 py-3 text-sm text-brand-midnight placeholder:text-slate-400 focus:border-brand-blue focus:outline-none focus:ring-2 focus:ring-brand-sky/40"
+            placeholder="Description"
+            value={description}
+            onChange={(event: ChangeEvent<HTMLInputElement>) => setDescription(event.target.value)}
+          />
+          <input
+            className="w-full rounded-2xl border border-white/50 bg-white/70 px-4 py-3 text-sm text-brand-midnight placeholder:text-slate-400 focus:border-brand-blue focus:outline-none focus:ring-2 focus:ring-brand-sky/40"
+            type="number"
+            placeholder="Amount (KES cents)"
+            value={amount ? amount : ""}
+            onChange={(event: ChangeEvent<HTMLInputElement>) => setAmount(Number(event.target.value))}
+          />
+        </div>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <button
+            className="inline-flex rounded-full border border-brand-blue/40 px-4 py-2 text-sm font-semibold text-brand-blue transition hover:bg-brand-blue hover:text-white disabled:opacity-40"
+            onClick={addItem}
+            disabled={!invoiceId || !amount}
+          >
+            Add item
           </button>
-          <button className="rounded bg-black p-2 text-white" onClick={pay} disabled={!invoiceId || !amount}>
-            Pay
+          <button
+            className="inline-flex rounded-full bg-brand-blue px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-midnight disabled:opacity-40"
+            onClick={pay}
+            disabled={!invoiceId || !amount}
+          >
+            Mark as paid
           </button>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
