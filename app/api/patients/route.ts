@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+export const runtime = "nodejs";
 
 function parseNumber(value: string | null, fallback: number) {
   const parsed = value ? Number.parseInt(value, 10) : Number.NaN;
