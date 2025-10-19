@@ -1,0 +1,196 @@
+name: Deploy Staging
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Optional image tag override"
+        required: false
+
+permissions:
+  id-token: write
+  contents: read
+  actions: read
+
+jobs:
+  build-and-push:
+    name: Build & Push Image (staging)
+    runs-on: ubuntu-latest
+
+    env:
+      APP_NAME: daily-emr
+      ENVIRONMENT: staging
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_STAGING_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'af-south-1' }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Run typecheck
+        run: npm run typecheck
+
+      - name: Build production bundle
+        run: |
+          set -o pipefail
+          npm run build | tee build.log
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-build-log
+          path: build.log
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Compute image tag
+        id: tag
+        run: |
+          if [ "${{ github.event.inputs.image_tag }}" != "" ]; then
+            echo "value=${{ github.event.inputs.image_tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "value=${GITHUB_SHA}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ steps.login-ecr.outputs.registry }}/${{ env.APP_NAME }}:${{ steps.tag.outputs.value }} .
+          echo "IMAGE_URI=${{ steps.login-ecr.outputs.registry }}/${{ env.APP_NAME }}:${{ steps.tag.outputs.value }}" >> $GITHUB_ENV
+
+      - name: Push Docker image
+        run: docker push $IMAGE_URI
+
+      - name: Write image URI artifact
+        run: echo "$IMAGE_URI" > image-uri.txt
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-image-uri
+          path: image-uri.txt
+
+  deploy:
+    name: Terraform Apply (staging)
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: staging-image-uri
+
+      - name: Extract image URI
+        id: image
+        run: |
+          IMAGE_URI=$(cat image-uri.txt)
+          echo "uri=$IMAGE_URI" >> $GITHUB_OUTPUT
+          echo "tag=${IMAGE_URI##*:}" >> $GITHUB_OUTPUT
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_STAGING_TERRAFORM_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'af-south-1' }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Terraform Init
+        working-directory: infra/terraform
+        run: terraform init -input=false
+
+      - name: Terraform Plan
+        working-directory: infra/terraform
+        run: |
+          set -o pipefail
+          terraform plan -input=false -out=tfplan \
+            -var="environment=staging" \
+            -var="container_image_tag=${{ steps.image.outputs.tag }}" \
+            -var="database_username=${{ secrets.STAGING_DB_USERNAME }}" \
+            -var="database_password=${{ secrets.STAGING_DB_PASSWORD }}" \
+            -var="acm_certificate_arn=${{ secrets.STAGING_ACM_CERTIFICATE_ARN }}" | tee terraform-plan.log
+
+      - name: Upload terraform plan log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-terraform-plan-log
+          path: infra/terraform/terraform-plan.log
+
+      - name: Terraform Apply
+        working-directory: infra/terraform
+        run: terraform apply -input=false tfplan
+
+      - name: Notify success
+        if: success()
+        run: echo "Staging deployment succeeded for image ${{ steps.image.outputs.uri }}"
+
+      - name: Notify failure
+        if: failure()
+        run: echo "Staging deployment failed" && exit 1
+
+  smoke-tests:
+    name: Smoke Tests
+    needs: deploy
+    runs-on: ubuntu-latest
+    env:
+      E2E_BASE_URL: ${{ secrets.STAGING_BASE_URL }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run smoke tests
+        run: npm run test:e2e
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-smoke-report
+          path: test-results

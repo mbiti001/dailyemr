@@ -91,6 +91,13 @@ Every push or pull request targeting `main` triggers the GitHub Actions workflow
 
 Keep commits green by running the same commands locally before pushing.
 
+### Smoke tests
+
+- End-to-end smoke tests are written with Playwright (`tests/e2e`). Install browsers locally once with `npx playwright install`.
+- Run them against a local dev server via `npm run dev` in one terminal and `npm run test:e2e` in another.
+- The staging deployment workflow (`.github/workflows/deploy-staging.yml`) runs the same smoke suite after Terraform apply, using the `STAGING_BASE_URL` secret as the test target.
+- GitHub Actions publishes the smoke run artifacts (`staging-smoke-report`) for debugging when a check fails.
+
 ## Deployment
 
 Deployments are easiest through Vercel (free tier works for staging).

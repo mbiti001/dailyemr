@@ -13,3 +13,5 @@ pnpm-debug.log*
 dist
 .prisma
 tsconfig.tsbuildinfo
+playwright-report
+test-results

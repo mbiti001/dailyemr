@@ -16,6 +16,9 @@ This directory bootstraps a reference AWS environment for the Daily EMR producti
 
 ```bash
 cd infra/terraform
+# Copy the example tfvars when preparing a new environment
+cp environments/staging.tfvars.example staging.tfvars
+
 terraform init \
   -backend-config="bucket=YOUR_STATE_BUCKET" \
   -backend-config="key=prod/terraform.tfstate" \
@@ -23,11 +26,8 @@ terraform init \
   -backend-config="dynamodb_table=YOUR_LOCK_TABLE"
 
 terraform plan \
-  -var="environment=production" \
-  -var="database_username=emr_admin" \
-  -var="database_password=$(pass show dailyemr/prod/db_password)" \
-  -var="acm_certificate_arn=arn:aws:acm:af-south-1:123456789012:certificate/abcdef" \
-  -var="container_image_tag=2025-10-19"
+  -var-file="staging.tfvars" \
+  -var="container_image_tag=$(git rev-parse --short HEAD)"
 
 terraform apply
 ```
@@ -46,3 +46,10 @@ terraform apply
 - Wire up GitHub Actions deployment workflow to build/push the container and run `terraform plan`/`apply` (see docs/production-launch.md).
 - Create AWS WAF rules, AWS Backup plan, and CloudFront distribution if global caching is required.
 - Layer in additional microservices (claims, notifications) as separate task definitions or Lambda functions.
+
+### Staging quickstart
+
+1. Copy `environments/staging.tfvars.example` to `staging.tfvars` and update with real values (ingress CIDRs, ACM cert, database credentials).
+2. Point the backend configuration to your staging state path (for example, `key=staging/terraform.tfstate`).
+3. Run `terraform init`, `terraform plan -var-file=staging.tfvars`, and `terraform apply`.
+4. Update GitHub repository secrets used by the staging deploy workflow to match the new infrastructure (role ARNs, database passwords, ACM certificate).

@@ -26,7 +26,7 @@ CI/CD (GitHub Actions) → ECR (container registry) → Terraform Cloud / Atlant
 | Environment | Purpose | Branch | Deployment cadence | Notes |
 | --- | --- | --- | --- | --- |
 | **Development** | Team feature work | feature branches | On demand via Vercel preview or ECS staging | Short-lived, seeded DB snapshots. |
-| **Staging** | Pre-production verification | `main` | Continuous after CI green | Mirrors production infra; synthetic + beta facility traffic. |
+| **Staging** | Pre-production verification | `main` | Continuous after CI green | Mirrors production infra; synthetic + beta facility traffic. Deploy pipeline: `.github/workflows/deploy-staging.yml` (post-deploy Playwright smoke tests). |
 | **Production** | Live facilities | `production` (protected) | Manual promotion or release train | Feature flags control gradual rollouts. |
 
 ## 3. Secrets & configuration
@@ -34,6 +34,7 @@ CI/CD (GitHub Actions) → ECR (container registry) → Terraform Cloud / Atlant
 - Managed in AWS Secrets Manager or HashiCorp Vault.
 - `.env.production` values injected at build/deploy time.
 - Key secrets: `DATABASE_URL`, `SESSION_PASSWORD`, `SHA_API_KEY`, `MFL_API_KEY`, `DHIS2_TOKEN`, third-party keys (telehealth, payments, LaunchDarkly, Auth0).
+- Staging workflow GitHub secrets/variables: `AWS_STAGING_DEPLOY_ROLE_ARN`, `AWS_STAGING_TERRAFORM_ROLE_ARN`, `STAGING_DATABASE_URL`, `STAGING_DB_USERNAME`, `STAGING_DB_PASSWORD`, `STAGING_ACM_CERTIFICATE_ARN`, `STAGING_BASE_URL`.
 - Use SOPS + age for Git-based secret management if Terraform Cloud is not used.
 
 ## 4. Data & compliance guardrails
@@ -57,7 +58,7 @@ CI/CD (GitHub Actions) → ECR (container registry) → Terraform Cloud / Atlant
 ## 6. Release governance
 
 1. Merge to `main` → CI (lint/typecheck/test) → staging deploy (auto).
-2. End-to-end smoke suite executes against staging (Cypress/Playwright).
+2. End-to-end smoke suite executes against staging (Playwright via `STAGING_BASE_URL`).
 3. Feature flag toggles validated; LaunchDarkly change requests signed off by product + clinical lead.
 4. Promote Git tag to `production` branch → GitHub Action builds immutable image, runs database migrations, deploys to ECS with canary (10% traffic for 30 mins) before full cutover.
 5. Post-deploy verification checklist logged in incident management tool.
@@ -74,11 +75,14 @@ CI/CD (GitHub Actions) → ECR (container registry) → Terraform Cloud / Atlant
 - [ ] Terraform state backend secured (Terraform Cloud or S3 + DynamoDB lock).
 - [ ] Networking design implemented (VPC, subnets, NAT, route tables).
 - [ ] RDS Postgres cluster created (instance class `db.m6g.large`, Multi-AZ, encryption at rest).
+- [ ] Staging VPC / ECS / RDS footprint provisioned via Terraform tfvars (parity with production).
 - [ ] Redis replication group (ElastiCache) created for session/queue support.
 - [ ] ECS cluster + Fargate service defined (min 2 tasks, target tracking scaling on CPU 60%).
 - [ ] Container image pipeline (ECR repo, image scanning) operational.
 - [ ] Secrets Manager entries populated and CI wired to retrieve at deploy time.
+- [ ] Playwright smoke suite wired into staging GitHub Actions workflow and passing.
 - [ ] Observability stack deployed and dashboards configured.
+- [ ] CI/CD pipelines configured (staging auto-deploy, production guarded and manual).
 - [ ] DR failover rehearsal completed and documented.
 - [ ] Security review passed (penetration test, threat model updates).
 - [ ] Clinical change advisory board sign-off.
