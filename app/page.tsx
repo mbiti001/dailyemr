@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Route } from "next";
 
 const features = [
   {
@@ -15,7 +16,13 @@ const features = [
   }
 ];
 
-const dashboardLinks = [
+type DashboardLinkCard = {
+  href: Route;
+  label: string;
+  blurb: string;
+};
+
+const dashboardLinks: DashboardLinkCard[] = [
   { href: "/dashboard/patients", label: "Patients", blurb: "Search, register, and review charts." },
   { href: "/dashboard/triage", label: "Triage", blurb: "Start visits and log vitals fast." },
   { href: "/dashboard/labs", label: "Labs", blurb: "Order, receive, and result investigations." },

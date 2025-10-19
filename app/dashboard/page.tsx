@@ -1,6 +1,13 @@
 import Link from "next/link";
+import type { Route } from "next";
 
-const sections = [
+type DashboardSection = {
+  title: string;
+  description: string;
+  href: Route;
+};
+
+const sections: DashboardSection[] = [
   { title: "Patients", description: "Search and manage patient demographics.", href: "/dashboard/patients" },
   { title: "Triage", description: "Open visits and capture vitals readings.", href: "/dashboard/triage" },
   { title: "Labs", description: "Order and result laboratory tests.", href: "/dashboard/labs" },

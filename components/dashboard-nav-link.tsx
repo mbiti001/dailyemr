@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import type { Route } from "next";
 import { usePathname } from "next/navigation";
 import { PropsWithChildren } from "react";
-import clsx from "classnames";
+import classNames from "classnames";
 
 type DashboardNavLinkProps = PropsWithChildren<{
-  href: string;
+  href: Route;
 }>;
 
 export function DashboardNavLink({ href, children }: DashboardNavLinkProps) {
@@ -16,7 +17,7 @@ export function DashboardNavLink({ href, children }: DashboardNavLinkProps) {
   return (
     <Link
       href={href}
-      className={clsx(
+      className={classNames(
         "rounded-xl px-4 py-3 font-medium transition",
         isActive
           ? "bg-white text-brand-midnight shadow-[0_18px_32px_-20px_rgba(56,189,248,0.55)]"

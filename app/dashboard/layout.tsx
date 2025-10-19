@@ -1,9 +1,15 @@
 import Link from "next/link";
+import type { Route } from "next";
 import { PropsWithChildren } from "react";
 
 import { DashboardNavLink } from "@/components/dashboard-nav-link";
 
-const links = [
+type DashboardLink = {
+  href: Route;
+  label: string;
+};
+
+const links: DashboardLink[] = [
   { href: "/dashboard/patients", label: "Patients" },
   { href: "/dashboard/triage", label: "Triage" },
   { href: "/dashboard/labs", label: "Labs" },

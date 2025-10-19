@@ -2,6 +2,9 @@ import type { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function POST(
   request: NextRequest,
   { params }: { params: { invoiceId: string } }
@@ -22,7 +25,7 @@ export async function POST(
 
     const ref = (body?.ref as string | undefined)?.trim() ?? null;
 
-  const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const invoice = await tx.invoice.findUnique({ where: { id: invoiceId } });
       if (!invoice) {
         throw new Error("Invoice not found");
