@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { Route } from "next";
 
+import { getDashboardStats } from "@/lib/dashboard";
+
 const features = [
   {
     title: "Kenya-first workflows",
@@ -22,6 +24,13 @@ type DashboardLinkCard = {
   blurb: string;
 };
 
+const numberFormatter = new Intl.NumberFormat("en-KE");
+const currencyFormatter = new Intl.NumberFormat("en-KE", {
+  style: "currency",
+  currency: "KES",
+  maximumFractionDigits: 0
+});
+
 const dashboardLinks: DashboardLinkCard[] = [
   { href: "/dashboard/patients", label: "Patients", blurb: "Search, register, and review charts." },
   { href: "/dashboard/triage", label: "Triage", blurb: "Start visits and log vitals fast." },
@@ -29,7 +38,27 @@ const dashboardLinks: DashboardLinkCard[] = [
   { href: "/dashboard/billing", label: "Billing", blurb: "Close out claims and cash payments." }
 ];
 
-export default function HomePage() {
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+export default async function HomePage() {
+  const stats = await getDashboardStats();
+
+  const heroMetrics = [
+    {
+      heading: "Visits tracked",
+      value: numberFormatter.format(stats.totals.visitsAllTime)
+    },
+    {
+      heading: "Active today",
+      value: numberFormatter.format(stats.totals.activeVisits)
+    },
+    {
+      heading: "Revenue this month",
+      value: currencyFormatter.format(stats.revenue.thisMonth / 100)
+    }
+  ];
+
   return (
     <main className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-16 px-6 pb-20 pt-24 sm:px-10 lg:px-20">
       <div className="absolute inset-x-0 top-0 -z-10 mx-auto h-[420px] w-full max-w-4xl rounded-[48px] bg-brand-sheen blur-3xl opacity-90" aria-hidden />
@@ -59,18 +88,12 @@ export default function HomePage() {
           </Link>
         </div>
         <dl className="mt-10 grid gap-4 text-sm text-white/70 sm:grid-cols-3">
-          <div>
-            <dt className="uppercase tracking-[0.2em] text-[11px] text-white/50">Visits tracked</dt>
-            <dd className="text-2xl font-semibold text-white">50K+</dd>
-          </div>
-          <div>
-            <dt className="uppercase tracking-[0.2em] text-[11px] text-white/50">Labs resolved</dt>
-            <dd className="text-2xl font-semibold text-white">24K</dd>
-          </div>
-          <div>
-            <dt className="uppercase tracking-[0.2em] text-[11px] text-white/50">Claims matched</dt>
-            <dd className="text-2xl font-semibold text-white">92%</dd>
-          </div>
+          {heroMetrics.map(metric => (
+            <div key={metric.heading}>
+              <dt className="uppercase tracking-[0.2em] text-[11px] text-white/50">{metric.heading}</dt>
+              <dd className="text-2xl font-semibold text-white">{metric.value}</dd>
+            </div>
+          ))}
         </dl>
       </header>
 
