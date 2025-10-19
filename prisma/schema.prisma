@@ -1,0 +1,234 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  password  String
+  fullName  String
+  role      Role      @default(RECORDS)
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  visits    Visit[]   @relation("ProviderVisits")
+  audits    AuditLog[] @relation("UserAudits")
+}
+
+enum Role {
+  ADMIN
+  CLINICIAN
+  NURSE
+  LAB
+  PHARMACY
+  CASHIER
+  RECORDS
+  REPORTS
+}
+
+model Facility {
+  id        String   @id @default(uuid())
+  mflCode   String   @unique
+  name      String
+  county    String?
+  subCounty String?
+  owner     String?
+  createdAt DateTime @default(now())
+  patients  Patient[]
+  visits    Visit[]
+}
+
+model Patient {
+  id          String    @id @default(uuid())
+  upi         String?   @unique
+  nationalId  String?   @db.VarChar(20)
+  passport    String?   @db.VarChar(20)
+  firstName   String
+  lastName    String
+  sex         String
+  dateOfBirth DateTime
+  phone       String?
+  address     String?
+  nextOfKin   String?
+  facilityId  String?
+  facility    Facility? @relation(fields: [facilityId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  visits      Visit[]
+
+  @@index([nationalId])
+  @@index([upi])
+}
+
+model Visit {
+  id         String    @id @default(uuid())
+  patientId  String
+  patient    Patient   @relation(fields: [patientId], references: [id])
+  facilityId String?
+  facility   Facility? @relation(fields: [facilityId], references: [id])
+  type       String
+  startedAt  DateTime  @default(now())
+  endedAt    DateTime?
+  providerId String?
+  provider   User?     @relation("ProviderVisits", fields: [providerId], references: [id])
+  notes      String?
+  vitals     Vital[]
+  orders     Order[]
+  invoices   Invoice[]
+
+  @@index([facilityId, startedAt])
+}
+
+model Vital {
+  id           String   @id @default(uuid())
+  visitId      String
+  visit        Visit    @relation(fields: [visitId], references: [id])
+  heightCm     Float?
+  weightKg     Float?
+  temperatureC Float?
+  pulseBpm     Int?
+  systolic     Int?
+  diastolic    Int?
+  spo2         Int?
+  recordedAt   DateTime @default(now())
+}
+
+model Order {
+  id        String      @id @default(uuid())
+  visitId   String
+  visit     Visit       @relation(fields: [visitId], references: [id])
+  type      String
+  status    String      @default("PENDING")
+  items     OrderItem[]
+  createdAt DateTime    @default(now())
+}
+
+model OrderItem {
+  id        String   @id @default(uuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id])
+  code      String
+  name      String
+  quantity  Int      @default(1)
+  labTest   LabTest?
+  prescription Prescription?
+}
+
+model LabTest {
+  id          String    @id @default(uuid())
+  orderItemId String    @unique
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id])
+  specimen    String?
+  result      String?
+  resultCode  String?
+  status      String    @default("ORDERED")
+  analyzedAt  DateTime?
+}
+
+model Medication {
+  id       String   @id @default(uuid())
+  code     String   @unique
+  name     String
+  form     String?
+  strength String?
+  atc      String?
+  prescriptions Prescription[]
+}
+
+model Prescription {
+  id           String       @id @default(uuid())
+  orderItemId  String       @unique
+  orderItem    OrderItem    @relation(fields: [orderItemId], references: [id])
+  medicationId String
+  medication   Medication   @relation(fields: [medicationId], references: [id])
+  dose         String
+  frequency    String
+  duration     String
+  notes        String?
+  dispense     Dispense?
+}
+
+model Dispense {
+  id             String       @id @default(uuid())
+  prescriptionId String       @unique
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id])
+  quantity       Int
+  batchNo        String?
+  dispensedAt    DateTime     @default(now())
+}
+
+model InventoryItem {
+  id        String       @id @default(uuid())
+  code      String       @unique
+  name      String
+  unit      String
+  minLevel  Int          @default(0)
+  createdAt DateTime     @default(now())
+  batches   StockBatch[]
+}
+
+model StockBatch {
+  id              String        @id @default(uuid())
+  inventoryItemId String
+  item            InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  batchNo         String
+  expiry          DateTime?
+  quantity        Int           @default(0)
+  txns            StockTxn[]
+}
+
+model StockTxn {
+  id        String     @id @default(uuid())
+  batchId   String
+  batch     StockBatch @relation(fields: [batchId], references: [id])
+  type      String
+  quantity  Int
+  note      String?
+  createdAt DateTime   @default(now())
+}
+
+model Invoice {
+  id        String      @id @default(uuid())
+  visitId   String
+  visit     Visit       @relation(fields: [visitId], references: [id])
+  payer     String
+  status    String      @default("OPEN")
+  items     InvoiceItem[]
+  total     Int         @default(0)
+  createdAt DateTime    @default(now())
+  payments  Payment[]
+}
+
+model InvoiceItem {
+  id          String   @id @default(uuid())
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id])
+  description String
+  amount      Int
+}
+
+model Payment {
+  id        String   @id @default(uuid())
+  invoiceId String
+  invoice   Invoice  @relation(fields: [invoiceId], references: [id])
+  method    String
+  amount    Int
+  paidAt    DateTime @default(now())
+  ref       String?
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  actorId   String?
+  actor     User?    @relation("UserAudits", fields: [actorId], references: [id])
+  action    String
+  entity    String
+  entityId  String?
+  details   String?
+  createdAt DateTime @default(now())
+}
